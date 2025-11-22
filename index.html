@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Client V32 - Final Logo</title>
+    <title>Client V35 - Sécurisé</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
     
@@ -13,18 +13,10 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: 'Inter', sans-serif; margin: 0; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
 
-        /* LOGIN */
+        /* LOGIN CLIENT */
         #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
         
-        /* --- NOUVEAU STYLE POUR LE LOGO --- */
-        .login-logo-img {
-            width: 500px;      /* Largeur souhaitée du logo */
-            height: auto;      /* Conserve les proportions */
-            margin-bottom: 25px; /* Espace entre le logo et le titre */
-            /* Optionnel : ajoute une ombre portée douce pour le relief */
-            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); 
-        }
-
+        .login-logo-img { width: 380px; height: auto; margin-bottom: 25px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); }
         .inp-track { width: 100%; max-width: 300px; padding: 15px; font-size: 1.2rem; border: 2px solid #ddd; border-radius: 12px; text-align: center; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 15px; outline: none; }
         .inp-track:focus { border-color: var(--brand); }
         .btn-login { width: 100%; max-width: 300px; padding: 15px; background: var(--brand); color: white; border: none; border-radius: 30px; font-weight: 800; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
@@ -54,25 +46,48 @@
 
         #alert-banner { position: absolute; top: 0; left: 0; width: 100%; background: var(--alert); color: white; padding: 10px; text-align: center; font-weight: bold; z-index: 1000; display: none; }
 
-        /* --- MENU TIROIR ÉPURÉ --- */
+        /* --- MENU TIROIR --- */
         .drawer-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; display: none; }
         .drawer { position: fixed; top: 0; left: 0; height: 100%; width: 280px; background: white; z-index: 2001; transform: translateX(-100%); transition: 0.3s; display: flex; flex-direction: column; }
         .drawer.open { transform: translateX(0); }
         
-        /* Profil Client */
         .user-card { background: #f8f9fa; padding: 30px 20px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 15px; }
         .user-avatar { width: 50px; height: 50px; background: #e1e4e8; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: bold; color: #555; }
         .user-details div:first-child { font-weight: 700; font-size: 1.1rem; color: var(--text); }
         .user-details div:last-child { font-size: 0.85rem; color: #888; margin-top: 4px; font-weight: 500; }
 
-        /* Liste Navigation */
         .nav-list { padding: 20px; flex-grow: 1; overflow-y: auto; }
-        .nav-item { display: flex; align-items: center; gap: 15px; padding: 15px; color: var(--text); text-decoration: none; font-weight: 600; border-radius: 8px; margin-bottom: 5px; transition: background 0.1s; }
+        .nav-item { display: flex; align-items: center; gap: 15px; padding: 15px; color: var(--text); text-decoration: none; font-weight: 600; border-radius: 8px; margin-bottom: 5px; transition: background 0.1s; cursor: pointer; }
         .nav-item:hover, .nav-item:active { background: #f0f4f8; color: var(--brand); }
         
-        /* Logout */
         .logout-btn { color: #e74c3c; font-weight: 700; cursor: pointer; padding: 20px; display: block; width: 100%; text-align: left; border-top: 1px solid #eee; display: flex; align-items: center; gap: 15px; }
         .logout-btn:hover { background: #fff5f5; }
+
+        /* --- NOUVEAU : POPUP AUTHENTIFICATION ADMIN --- */
+        #admin-auth-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 9999;
+            display: none; align-items: center; justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+        .auth-box {
+            background: white; padding: 30px; border-radius: 15px; width: 90%; max-width: 350px; text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .auth-input {
+            width: 100%; padding: 12px; margin-bottom: 15px;
+            border: 1px solid #ddd; border-radius: 8px; outline: none;
+            font-family: 'Inter'; font-size: 1rem;
+        }
+        .auth-input:focus { border-color: var(--brand); }
+        .btn-auth {
+            width: 100%; padding: 12px; background: #2c3e50; color: white;
+            border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem;
+        }
+        .btn-cancel {
+            background: transparent; color: #999; margin-top: 10px;
+        }
+        #auth-error { color: #e74c3c; font-size: 0.9rem; margin-top: 10px; display: none; font-weight: bold; }
 
         @media (min-width: 768px) {
             .content-wrapper { flex-direction: row; }
@@ -84,13 +99,27 @@
 <body>
 
     <div id="login-screen">
-        <img src="logo1.png" alt="Logo Entreprise" class="login-logo-img">
-        
+        <img src="logo1.png" alt="Logo" class="login-logo-img">
         <h2 style="color:var(--brand); margin-bottom:30px">Suivi Connecté</h2>
         <input type="text" id="track-id" class="inp-track" placeholder="FR-1001" autofocus>
         <button class="btn-login" onclick="login()">ACCÉDER</button>
         <div id="login-err" class="err-msg">Numéro introuvable</div>
         <div style="margin-top:30px; font-size:0.8rem; color:#aaa">Codes démo : FR-1001, FR-1002, FR-1003</div>
+    </div>
+
+    <div id="admin-auth-modal">
+        <div class="auth-box">
+            <h3 style="margin-top:0; color:#2c3e50">Accès Superviseur</h3>
+            <p style="font-size:0.85rem; color:#777; margin-bottom:20px;">Zone réservée au personnel autorisé</p>
+            
+            <input type="text" id="adm-user" class="auth-input" placeholder="Identifiant">
+            <input type="password" id="adm-pass" class="auth-input" placeholder="Mot de passe">
+            
+            <button class="btn-auth" onclick="checkAdminAuth()">Se connecter</button>
+            <button class="btn-auth btn-cancel" onclick="closeAdminAuth()">Annuler</button>
+            
+            <div id="auth-error">Identifiants incorrects</div>
+        </div>
     </div>
 
     <div id="app-container">
@@ -106,14 +135,16 @@
             </div>
 
             <div class="nav-list">
-                <a href="#" class="nav-item" onclick="toggleMenu()">🏠 Accueil</a>
-                <a href="#" class="nav-item" onclick="toggleMenu()">📞 Nous contacter</a>
-                <a href="#" class="nav-item" onclick="toggleMenu()">👥 Qui sommes-nous</a>
+                <div class="nav-item" onclick="toggleMenu()">🏠 Accueil</div>
+                <div class="nav-item" onclick="toggleMenu()">📞 Nous contacter</div>
+                <div class="nav-item" onclick="toggleMenu()">👥 Qui sommes-nous</div>
+                
+                <div class="nav-item" onclick="openAdminAuth()" style="color: #f39c12;">
+                    🔐 Accès Superviseur
+                </div>
             </div>
 
-            <div class="logout-btn" onclick="logout()">
-                🚪 Déconnexion
-            </div>
+            <div class="logout-btn" onclick="logout()">🚪 Déconnexion</div>
         </nav>
 
         <header>
@@ -153,12 +184,53 @@
         let speedUpdateTimer = 0;
         let gameLoopId;
 
-        // ENTER KEY
+        // --- GESTION AUTH ADMIN ---
+        function openAdminAuth() {
+            toggleMenu(); // Fermer le menu
+            document.getElementById('admin-auth-modal').style.display = 'flex';
+            // Reset des champs
+            document.getElementById('adm-user').value = "";
+            document.getElementById('adm-pass').value = "";
+            document.getElementById('auth-error').style.display = 'none';
+        }
+
+        function closeAdminAuth() {
+            document.getElementById('admin-auth-modal').style.display = 'none';
+        }
+
+        function checkAdminAuth() {
+            const u = document.getElementById('adm-user').value;
+            const p = document.getElementById('adm-pass').value;
+            const err = document.getElementById('auth-error');
+
+            // VERIFICATION STRICTE
+            if (u === 'admin' && p === 'Mfteur044*') {
+                // Succès
+                err.style.display = 'none';
+                window.open('admin.html', '_blank'); // Ouvre l'admin
+                closeAdminAuth(); // Ferme la popup
+            } else {
+                // Erreur
+                err.style.display = 'block';
+                // Animation de secousse pour feedback
+                const box = document.querySelector('.auth-box');
+                box.style.transform = 'translateX(10px)';
+                setTimeout(() => box.style.transform = 'translateX(-10px)', 100);
+                setTimeout(() => box.style.transform = 'translateX(0)', 200);
+            }
+        }
+
+        // ENTER KEY POUR LE TRACKING
         document.getElementById('track-id').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') login();
         });
 
-        // LOGIN
+        // ENTER KEY POUR L'ADMIN
+        document.getElementById('adm-pass').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') checkAdminAuth();
+        });
+
+        // LOGIN CLIENT
         function login() {
             const id = document.getElementById('track-id').value.toUpperCase().trim();
             const user = db[id];
@@ -167,7 +239,6 @@
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('app-container').style.display = 'flex';
                 
-                // Mise à jour Menu Pro
                 document.getElementById('u-name').innerText = user.nom;
                 document.getElementById('u-id').innerText = "N° " + id;
                 document.querySelector('.user-avatar').innerText = user.initials; 
@@ -243,7 +314,7 @@
             localStorage.setItem('save_' + currentUserID, JSON.stringify(state));
         }
 
-        // --- MOTEUR (Vitesse 45s) ---
+        // MOTEUR
         function loop(timestamp) {
             const dt = (timestamp - lastTime) / 1000;
             lastTime = timestamp;
@@ -258,7 +329,6 @@
                 return;
             }
 
-            // VITESSE VARIABLE 45 SECONDES
             speedUpdateTimer += dt;
             if (speedUpdateTimer > 45.0) { 
                 targetSpeed = Math.floor(Math.random() * (110 - 80 + 1) + 80); 
@@ -342,4 +412,3 @@
     </script>
 </body>
 </html>
-
