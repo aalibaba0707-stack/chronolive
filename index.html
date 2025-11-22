@@ -3,19 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Client V35 - Sécurisé</title>
+    <title>Client V40 - Arrivée Gérée</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
     
     <style>
         /* --- STYLE GLOBAL --- */
-        :root { --brand: #0066CC; --alert: #e74c3c; --bg: #f4f6f8; --text: #2c3e50; --header: 60px; }
+        :root { --brand: #0066CC; --alert: #e74c3c; --success: #27ae60; --bg: #f4f6f8; --text: #2c3e50; --header: 60px; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: 'Inter', sans-serif; margin: 0; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
 
-        /* LOGIN CLIENT */
+        /* LOGIN */
         #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
-        
         .login-logo-img { width: 380px; height: auto; margin-bottom: 25px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); }
         .inp-track { width: 100%; max-width: 300px; padding: 15px; font-size: 1.2rem; border: 2px solid #ddd; border-radius: 12px; text-align: center; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 15px; outline: none; }
         .inp-track:focus { border-color: var(--brand); }
@@ -27,7 +26,12 @@
         #app-container { display: none; flex-direction: column; height: 100%; width: 100%; }
         header { height: var(--header); background: white; padding: 0 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); z-index: 100; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
         .menu-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text); }
-        .speed-badge { background: #e1f5fe; color: #0066CC; padding: 5px 10px; border-radius: 6px; font-weight: bold; min-width: 90px; text-align: center; }
+        
+        .speed-badge { 
+            background: #e1f5fe; color: #0066CC; padding: 5px 0; 
+            border-radius: 6px; font-weight: bold; width: 110px; 
+            text-align: center; display: inline-block; transition: 0.3s;
+        }
 
         .content-wrapper { display: flex; flex-direction: column; flex-grow: 1; overflow: hidden; position: relative; }
         #map { flex-grow: 1; width: 100%; min-height: 50%; z-index: 1; }
@@ -40,60 +44,40 @@
         .t-item::before { content: ''; position: absolute; left: -6px; top: 5px; width: 10px; height: 10px; border-radius: 50%; background: #ccc; border: 2px solid white; box-shadow: 0 0 0 1px #ccc; }
         .t-time { font-size: 0.75rem; color: #999; font-weight: 600; margin-bottom: 2px; }
         .t-text { font-size: 0.9rem; font-weight: 600; }
+        
         .evt-start::before { background: var(--brand); }
         .evt-alert::before { background: var(--alert); }
+        .evt-end::before { background: var(--success); box-shadow: 0 0 0 1px var(--success); }
+        
         .evt-alert .t-text { color: var(--alert); }
+        .evt-end .t-text { color: var(--success); font-weight: 800; }
 
         #alert-banner { position: absolute; top: 0; left: 0; width: 100%; background: var(--alert); color: white; padding: 10px; text-align: center; font-weight: bold; z-index: 1000; display: none; }
 
-        /* --- MENU TIROIR --- */
+        /* MENU */
         .drawer-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; display: none; }
         .drawer { position: fixed; top: 0; left: 0; height: 100%; width: 280px; background: white; z-index: 2001; transform: translateX(-100%); transition: 0.3s; display: flex; flex-direction: column; }
         .drawer.open { transform: translateX(0); }
-        
         .user-card { background: #f8f9fa; padding: 30px 20px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 15px; }
         .user-avatar { width: 50px; height: 50px; background: #e1e4e8; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: bold; color: #555; }
         .user-details div:first-child { font-weight: 700; font-size: 1.1rem; color: var(--text); }
         .user-details div:last-child { font-size: 0.85rem; color: #888; margin-top: 4px; font-weight: 500; }
-
         .nav-list { padding: 20px; flex-grow: 1; overflow-y: auto; }
         .nav-item { display: flex; align-items: center; gap: 15px; padding: 15px; color: var(--text); text-decoration: none; font-weight: 600; border-radius: 8px; margin-bottom: 5px; transition: background 0.1s; cursor: pointer; }
         .nav-item:hover, .nav-item:active { background: #f0f4f8; color: var(--brand); }
-        
         .logout-btn { color: #e74c3c; font-weight: 700; cursor: pointer; padding: 20px; display: block; width: 100%; text-align: left; border-top: 1px solid #eee; display: flex; align-items: center; gap: 15px; }
         .logout-btn:hover { background: #fff5f5; }
 
-        /* --- NOUVEAU : POPUP AUTHENTIFICATION ADMIN --- */
-        #admin-auth-modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8); z-index: 9999;
-            display: none; align-items: center; justify-content: center;
-            backdrop-filter: blur(5px);
-        }
-        .auth-box {
-            background: white; padding: 30px; border-radius: 15px; width: 90%; max-width: 350px; text-align: center;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-        }
-        .auth-input {
-            width: 100%; padding: 12px; margin-bottom: 15px;
-            border: 1px solid #ddd; border-radius: 8px; outline: none;
-            font-family: 'Inter'; font-size: 1rem;
-        }
+        /* ADMIN AUTH */
+        #admin-auth-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+        .auth-box { background: white; padding: 30px; border-radius: 15px; width: 90%; max-width: 350px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        .auth-input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Inter'; font-size: 1rem; }
         .auth-input:focus { border-color: var(--brand); }
-        .btn-auth {
-            width: 100%; padding: 12px; background: #2c3e50; color: white;
-            border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem;
-        }
-        .btn-cancel {
-            background: transparent; color: #999; margin-top: 10px;
-        }
+        .btn-auth { width: 100%; padding: 12px; background: #2c3e50; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem; }
+        .btn-cancel { background: transparent; color: #999; margin-top: 10px; }
         #auth-error { color: #e74c3c; font-size: 0.9rem; margin-top: 10px; display: none; font-weight: bold; }
 
-        @media (min-width: 768px) {
-            .content-wrapper { flex-direction: row; }
-            #map { height: 100%; width: auto; flex-grow: 1; }
-            .history-panel { width: 350px; height: 100%; margin-top: 0; border-radius: 0; border-left: 1px solid #ddd; }
-        }
+        @media (min-width: 768px) { .content-wrapper { flex-direction: row; } #map { height: 100%; width: auto; flex-grow: 1; } .history-panel { width: 350px; height: 100%; margin-top: 0; border-radius: 0; border-left: 1px solid #ddd; } }
     </style>
 </head>
 <body>
@@ -101,7 +85,7 @@
     <div id="login-screen">
         <img src="logo1.png" alt="Logo" class="login-logo-img">
         <h2 style="color:var(--brand); margin-bottom:30px">Suivi Connecté</h2>
-        <input type="text" id="track-id" class="inp-track" placeholder="FR-1001" autofocus>
+        <input type="text" id="track-id" class="inp-track" placeholder="écrire ici" autofocus>
         <button class="btn-login" onclick="login()">ACCÉDER</button>
         <div id="login-err" class="err-msg">Numéro introuvable</div>
         <div style="margin-top:30px; font-size:0.8rem; color:#aaa">Codes démo : FR-1001, FR-1002, FR-1003</div>
@@ -110,40 +94,27 @@
     <div id="admin-auth-modal">
         <div class="auth-box">
             <h3 style="margin-top:0; color:#2c3e50">Accès Superviseur</h3>
-            <p style="font-size:0.85rem; color:#777; margin-bottom:20px;">Zone réservée au personnel autorisé</p>
-            
             <input type="text" id="adm-user" class="auth-input" placeholder="Identifiant">
             <input type="password" id="adm-pass" class="auth-input" placeholder="Mot de passe">
-            
             <button class="btn-auth" onclick="checkAdminAuth()">Se connecter</button>
             <button class="btn-auth btn-cancel" onclick="closeAdminAuth()">Annuler</button>
-            
             <div id="auth-error">Identifiants incorrects</div>
         </div>
     </div>
 
     <div id="app-container">
-        
         <div class="drawer-overlay" id="overlay" onclick="toggleMenu()"></div>
         <nav class="drawer" id="drawer">
             <div class="user-card">
                 <div class="user-avatar">JD</div>
-                <div class="user-details">
-                    <div id="u-name">Jean Dupont</div>
-                    <div id="u-id">N° FR-1001</div>
-                </div>
+                <div class="user-details"><div id="u-name">Jean Dupont</div><div id="u-id">N° FR-1001</div></div>
             </div>
-
             <div class="nav-list">
                 <div class="nav-item" onclick="toggleMenu()">🏠 Accueil</div>
                 <div class="nav-item" onclick="toggleMenu()">📞 Nous contacter</div>
                 <div class="nav-item" onclick="toggleMenu()">👥 Qui sommes-nous</div>
-                
-                <div class="nav-item" onclick="openAdminAuth()" style="color: #f39c12;">
-                    🔐 Accès Superviseur
-                </div>
+                <div class="nav-item" onclick="openAdminAuth()" style="color: #f39c12;">🔐 Accès Superviseur</div>
             </div>
-
             <div class="logout-btn" onclick="logout()">🚪 Déconnexion</div>
         </nav>
 
@@ -164,9 +135,10 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
+        // CONFIG
+        const TRIP_DURATION_MINUTES = 10; // Durée du trajet en minutes
         const CMD_KEY = 'cmd_v25_fix'; 
 
-        // DATA
         const db = {
             "FR-1001": { nom: "Jean Dupont", initials: "JD", start: [48.8566, 2.3522], end: [45.7640, 4.8357], logs: ["Départ Paris"] },
             "FR-1002": { nom: "Sophie Martin", initials: "SM", start: [45.7640, 4.8357], end: [43.2965, 5.3698], logs: ["Départ Lyon"] },
@@ -174,63 +146,21 @@
         };
 
         let map, marker, polyline;
-        let routePoints = [], currentIndex = 0, currentPos;
-        let lastTime = 0, isPaused = false;
+        let routePoints = [], currentIndex = 0;
+        let isPaused = false;
         let currentUserID = null;
         let pausedReason = "";
-        
+        let startTime = 0;
+
+        // VITESSE
         let currentSpeed = 90; 
         let targetSpeed = 90;  
-        let speedUpdateTimer = 0;
-        let gameLoopId;
+        let lastSpeedUpdate = 0; 
 
-        // --- GESTION AUTH ADMIN ---
-        function openAdminAuth() {
-            toggleMenu(); // Fermer le menu
-            document.getElementById('admin-auth-modal').style.display = 'flex';
-            // Reset des champs
-            document.getElementById('adm-user').value = "";
-            document.getElementById('adm-pass').value = "";
-            document.getElementById('auth-error').style.display = 'none';
-        }
+        // EVENTS
+        document.getElementById('track-id').addEventListener('keypress', (e) => { if (e.key === 'Enter') login(); });
+        document.getElementById('adm-pass').addEventListener('keypress', (e) => { if (e.key === 'Enter') checkAdminAuth(); });
 
-        function closeAdminAuth() {
-            document.getElementById('admin-auth-modal').style.display = 'none';
-        }
-
-        function checkAdminAuth() {
-            const u = document.getElementById('adm-user').value;
-            const p = document.getElementById('adm-pass').value;
-            const err = document.getElementById('auth-error');
-
-            // VERIFICATION STRICTE
-            if (u === 'admin' && p === 'Mfteur044*') {
-                // Succès
-                err.style.display = 'none';
-                window.open('admin.html', '_blank'); // Ouvre l'admin
-                closeAdminAuth(); // Ferme la popup
-            } else {
-                // Erreur
-                err.style.display = 'block';
-                // Animation de secousse pour feedback
-                const box = document.querySelector('.auth-box');
-                box.style.transform = 'translateX(10px)';
-                setTimeout(() => box.style.transform = 'translateX(-10px)', 100);
-                setTimeout(() => box.style.transform = 'translateX(0)', 200);
-            }
-        }
-
-        // ENTER KEY POUR LE TRACKING
-        document.getElementById('track-id').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') login();
-        });
-
-        // ENTER KEY POUR L'ADMIN
-        document.getElementById('adm-pass').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') checkAdminAuth();
-        });
-
-        // LOGIN CLIENT
         function login() {
             const id = document.getElementById('track-id').value.toUpperCase().trim();
             const user = db[id];
@@ -238,11 +168,9 @@
                 currentUserID = id;
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('app-container').style.display = 'flex';
-                
                 document.getElementById('u-name').innerText = user.nom;
                 document.getElementById('u-id').innerText = "N° " + id;
                 document.querySelector('.user-avatar').innerText = user.initials; 
-
                 initMap(user);
             } else {
                 document.getElementById('login-err').style.display = 'block';
@@ -251,7 +179,6 @@
 
         function logout() { location.reload(); }
 
-        // INIT MAP
         function initMap(user) {
             if(!map) {
                 map = L.map('map', { zoomControl: false });
@@ -260,7 +187,7 @@
             setTimeout(() => { map.invalidateSize(); }, 50);
 
             routePoints = [];
-            const count = 1500; 
+            const count = 5000; 
             for(let i=0; i<=count; i++) {
                 routePoints.push([
                     user.start[0] + (user.end[0] - user.start[0]) * (i/count),
@@ -281,32 +208,27 @@
             const savedData = localStorage.getItem('save_' + currentUserID);
             if (savedData) {
                 const s = JSON.parse(savedData);
-                currentIndex = s.idx;
-                currentPos = L.latLng(s.lat, s.lng);
+                startTime = s.startT;
                 isPaused = s.paused;
                 pausedReason = s.reason || "";
                 document.getElementById('hist-list').innerHTML = s.html;
-                marker.setLatLng(currentPos);
                 if(isPaused && pausedReason) showAlert(pausedReason);
             } else {
-                currentIndex = 0;
-                currentPos = L.latLng(routePoints[0]);
+                startTime = Date.now();
                 isPaused = false;
                 document.getElementById('hist-list').innerHTML = "";
                 user.logs.forEach(txt => addLog(txt, 'start'));
+                saveUserState();
             }
 
-            if(gameLoopId) cancelAnimationFrame(gameLoopId);
-            lastTime = performance.now();
-            gameLoopId = requestAnimationFrame(loop);
+            lastSpeedUpdate = Date.now();
+            requestAnimationFrame(loop);
         }
 
         function saveUserState() {
             if (!currentUserID) return;
             const state = {
-                idx: currentIndex,
-                lat: currentPos.lat,
-                lng: currentPos.lng,
+                startT: startTime,
                 paused: isPaused,
                 reason: pausedReason,
                 html: document.getElementById('hist-list').innerHTML
@@ -314,52 +236,77 @@
             localStorage.setItem('save_' + currentUserID, JSON.stringify(state));
         }
 
-        // MOTEUR
-        function loop(timestamp) {
-            const dt = (timestamp - lastTime) / 1000;
-            lastTime = timestamp;
-            if(Math.random() < 0.02) saveUserState();
+        // --- BOUCLE PRINCIPALE ---
+        function loop() {
+            if(Math.random() < 0.05) saveUserState();
 
             if(isPaused) {
                 document.getElementById('spd').innerText = "0";
-                gameLoopId = requestAnimationFrame(loop); return;
-            }
-            if(currentIndex >= routePoints.length - 1) {
-                document.getElementById('spd').innerText = "0";
-                return;
+                requestAnimationFrame(loop); return;
             }
 
-            speedUpdateTimer += dt;
-            if (speedUpdateTimer > 45.0) { 
-                targetSpeed = Math.floor(Math.random() * (110 - 80 + 1) + 80); 
-                speedUpdateTimer = 0;
+            // GESTION TEMPS / POSITION
+            const now = Date.now();
+            const timeElapsed = now - startTime;
+            const totalDurationMs = TRIP_DURATION_MINUTES * 60 * 1000;
+            let progress = timeElapsed / totalDurationMs;
+
+            // --- ARRIVÉE À DESTINATION ---
+            if(progress >= 1) {
+                progress = 1;
+                marker.setLatLng(routePoints[routePoints.length-1]);
+                
+                // 1. Compteur Vert
+                const badge = document.querySelector('.speed-badge');
+                badge.style.background = "#27ae60"; // Vert
+                badge.style.color = "white";
+                badge.innerHTML = "✅ ARRIVÉ";
+
+                // 2. Log unique (évite les doublons si déjà loggué)
+                const historyHTML = document.getElementById('hist-list').innerHTML;
+                if (!historyHTML.includes('Colis remis au destinataire')) {
+                    addLog("✅ Colis remis au destinataire", "end");
+                    marker.bindPopup("<b>COLIS LIVRÉ</b>").openPopup();
+                }
+                
+                return; // Fin de la boucle
             }
-            if (currentSpeed < targetSpeed) currentSpeed += 2 * dt;
-            else if (currentSpeed > targetSpeed) currentSpeed -= 2 * dt;
 
-            document.getElementById('spd').innerText = Math.floor(currentSpeed);
-
-            const speedMs = currentSpeed / 3.6;
-            const timeMultiplier = 10; 
-            let dist = speedMs * dt * timeMultiplier;
-
-            const start = currentPos;
-            const end = L.latLng(routePoints[currentIndex + 1]);
-            const segmentDist = start.distanceTo(end);
-
-            if(dist >= segmentDist) { 
-                currentPos = end; currentIndex++; 
-            } else {
-                const ratio = dist / segmentDist;
-                currentPos = L.latLng(
-                    start.lat + (end.lat - start.lat) * ratio,
-                    start.lng + (end.lng - start.lng) * ratio
-                );
+            // --- VITESSE (30 SECONDES) ---
+            if (now - lastSpeedUpdate > 30000) {
+                currentSpeed = Math.floor(Math.random() * (110 - 85 + 1) + 85);
+                lastSpeedUpdate = now;
+                document.getElementById('spd').innerText = currentSpeed;
             }
-            marker.setLatLng(currentPos);
-            map.panTo(currentPos, { animate: false });
+
+            // POSITION
+            const totalPoints = routePoints.length - 1;
+            const exactIndex = progress * totalPoints;
+            currentIndex = Math.floor(exactIndex);
             
-            gameLoopId = requestAnimationFrame(loop);
+            const p1 = routePoints[currentIndex];
+            const p2 = routePoints[Math.min(currentIndex + 1, totalPoints)];
+            const fraction = exactIndex - currentIndex;
+
+            if(p1 && p2) {
+                const lat = p1[0] + (p2[0] - p1[0]) * fraction;
+                const lng = p1[1] + (p2[1] - p1[1]) * fraction;
+                marker.setLatLng([lat, lng]);
+                map.panTo([lat, lng], { animate: false });
+            }
+
+            requestAnimationFrame(loop);
+        }
+
+        // UTILS & ADMIN
+        function openAdminAuth() { toggleMenu(); document.getElementById('admin-auth-modal').style.display = 'flex'; document.getElementById('adm-pass').value=""; document.getElementById('auth-error').style.display='none'; }
+        function closeAdminAuth() { document.getElementById('admin-auth-modal').style.display = 'none'; }
+        function checkAdminAuth() {
+            if(document.getElementById('adm-user').value === 'admin' && document.getElementById('adm-pass').value === 'Mfteur044*') {
+                window.open('admin.html', '_blank'); closeAdminAuth();
+            } else {
+                document.getElementById('auth-error').style.display = 'block';
+            }
         }
 
         function addLog(txt, type) {
@@ -371,33 +318,26 @@
             list.prepend(li);
             saveUserState();
         }
-
         function toggleMenu() {
             const d = document.getElementById('drawer');
             const o = document.getElementById('overlay');
             if(d.classList.contains('open')) { d.classList.remove('open'); o.style.display='none'; }
             else { d.classList.add('open'); o.style.display='block'; }
         }
+        function showAlert(txt) { document.getElementById('alert-banner').style.display = 'block'; document.getElementById('alert-banner').innerText = "⛔ " + txt; }
 
-        function showAlert(txt) {
-            document.getElementById('alert-banner').style.display = 'block';
-            document.getElementById('alert-banner').innerText = "⛔ " + txt;
-        }
-
+        // RADAR
         setInterval(() => {
             const raw = localStorage.getItem(CMD_KEY);
             if(raw && currentUserID) { 
                 if(raw.includes('STOP')) {
                     const reason = raw.split('|')[1];
-                    isPaused = true;
-                    pausedReason = reason;
-                    showAlert(reason);
-                    addLog("⚠️ ARRÊT : " + reason, "alert");
+                    isPaused = true; pausedReason = reason;
+                    showAlert(reason); addLog("⚠️ ARRÊT : " + reason, "alert");
                     localStorage.removeItem(CMD_KEY);
                 }
                 else if(raw.includes('GO')) {
-                    isPaused = false;
-                    pausedReason = "";
+                    isPaused = false; pausedReason = "";
                     document.getElementById('alert-banner').style.display = 'none';
                     addLog("✅ Reprise du trajet", "start");
                     localStorage.removeItem(CMD_KEY);
