@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Client V40 - Arrivée Gérée</title>
+    <title>Client V43 - Multi-Transport</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
     
@@ -26,12 +26,7 @@
         #app-container { display: none; flex-direction: column; height: 100%; width: 100%; }
         header { height: var(--header); background: white; padding: 0 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); z-index: 100; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
         .menu-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text); }
-        
-        .speed-badge { 
-            background: #e1f5fe; color: #0066CC; padding: 5px 0; 
-            border-radius: 6px; font-weight: bold; width: 110px; 
-            text-align: center; display: inline-block; transition: 0.3s;
-        }
+        .speed-badge { background: #e1f5fe; color: #0066CC; padding: 5px 0; border-radius: 6px; font-weight: bold; width: 110px; text-align: center; display: inline-block; transition: 0.3s; }
 
         .content-wrapper { display: flex; flex-direction: column; flex-grow: 1; overflow: hidden; position: relative; }
         #map { flex-grow: 1; width: 100%; min-height: 50%; z-index: 1; }
@@ -44,11 +39,9 @@
         .t-item::before { content: ''; position: absolute; left: -6px; top: 5px; width: 10px; height: 10px; border-radius: 50%; background: #ccc; border: 2px solid white; box-shadow: 0 0 0 1px #ccc; }
         .t-time { font-size: 0.75rem; color: #999; font-weight: 600; margin-bottom: 2px; }
         .t-text { font-size: 0.9rem; font-weight: 600; }
-        
         .evt-start::before { background: var(--brand); }
         .evt-alert::before { background: var(--alert); }
         .evt-end::before { background: var(--success); box-shadow: 0 0 0 1px var(--success); }
-        
         .evt-alert .t-text { color: var(--alert); }
         .evt-end .t-text { color: var(--success); font-weight: 800; }
 
@@ -85,10 +78,10 @@
     <div id="login-screen">
         <img src="logo1.png" alt="Logo" class="login-logo-img">
         <h2 style="color:var(--brand); margin-bottom:30px">Suivi Connecté</h2>
-        <input type="text" id="track-id" class="inp-track" placeholder="écrire ici" autofocus>
+        <input type="text" id="track-id" class="inp-track" placeholder="FR-1001" autofocus>
         <button class="btn-login" onclick="login()">ACCÉDER</button>
         <div id="login-err" class="err-msg">Numéro introuvable</div>
-        <div style="margin-top:30px; font-size:0.8rem; color:#aaa">Codes démo : FR-1001, FR-1002, FR-1003</div>
+        <div style="margin-top:30px; font-size:0.8rem; color:#aaa">Codes démo : US-9090, FR-1001</div>
     </div>
 
     <div id="admin-auth-modal">
@@ -135,29 +128,31 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // CONFIG
-        const TRIP_DURATION_MINUTES = 10; // Durée du trajet en minutes
+        // CONFIG TEMPS RÉEL (1440 minutes = 24h)
+        const TRIP_DURATION_MINUTES = 1440; 
         const CMD_KEY = 'cmd_v25_fix'; 
 
+        // DATA
         const db = {
+            "US-9090": { nom: "Lucille Delancy", initials: "LD", start: [48.8566, 2.3522], end: [25.8275, -80.2245], logs: ["Départ Paris CDG"] },
             "FR-1001": { nom: "Jean Dupont", initials: "JD", start: [48.8566, 2.3522], end: [45.7640, 4.8357], logs: ["Départ Paris"] },
-            "FR-1002": { nom: "Sophie Martin", initials: "SM", start: [45.7640, 4.8357], end: [43.2965, 5.3698], logs: ["Départ Lyon"] },
-            "FR-1003": { nom: "Marc Levy", initials: "ML", start: [44.8378, -0.5792], end: [43.6045, 1.4442], logs: ["Départ Bordeaux"] }
+            "FR-1002": { nom: "Sophie Martin", initials: "SM", start: [45.7640, 4.8357], end: [43.2965, 5.3698], logs: ["Départ Lyon"] }
         };
 
+        // --- ICONS & ETAT ---
         let map, marker, polyline;
+        let truckIcon, planeIcon; // On prépare les deux variables
         let routePoints = [], currentIndex = 0;
         let isPaused = false;
         let currentUserID = null;
         let pausedReason = "";
         let startTime = 0;
+        let currentMode = "truck"; // 'truck' ou 'plane'
 
-        // VITESSE
         let currentSpeed = 90; 
         let targetSpeed = 90;  
         let lastSpeedUpdate = 0; 
 
-        // EVENTS
         document.getElementById('track-id').addEventListener('keypress', (e) => { if (e.key === 'Enter') login(); });
         document.getElementById('adm-pass').addEventListener('keypress', (e) => { if (e.key === 'Enter') checkAdminAuth(); });
 
@@ -187,7 +182,7 @@
             setTimeout(() => { map.invalidateSize(); }, 50);
 
             routePoints = [];
-            const count = 5000; 
+            const count = 10000; 
             for(let i=0; i<=count; i++) {
                 routePoints.push([
                     user.start[0] + (user.end[0] - user.start[0]) * (i/count),
@@ -201,9 +196,15 @@
             polyline = L.polyline(routePoints, { color: '#0066CC', weight: 5 }).addTo(map);
             map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
 
-            const icon = L.divIcon({ className: 'icon', html: '🚛', iconSize: [40,40] });
-            document.head.appendChild(Object.assign(document.createElement('style'), { innerHTML: '.icon { font-size: 35px; filter: drop-shadow(0 3px 2px rgba(0,0,0,0.3)); }' }));
-            marker = L.marker(routePoints[0], { icon: icon }).addTo(map);
+            // --- DEFINITION DES DEUX ICONES ---
+            truckIcon = L.divIcon({ className: 'icon', html: '🚛', iconSize: [40,40] });
+            planeIcon = L.divIcon({ className: 'icon', html: '✈️', iconSize: [40,40] });
+            
+            // CSS pour l'icône
+            document.head.appendChild(Object.assign(document.createElement('style'), { innerHTML: '.icon { font-size: 35px; filter: drop-shadow(0 3px 2px rgba(0,0,0,0.3)); transition: all 0.5s; }' }));
+            
+            // On commence en camion par défaut
+            marker = L.marker(routePoints[0], { icon: truckIcon }).addTo(map);
 
             const savedData = localStorage.getItem('save_' + currentUserID);
             if (savedData) {
@@ -221,7 +222,7 @@
                 saveUserState();
             }
 
-            lastSpeedUpdate = Date.now();
+            lastSpeedUpdate = 0; 
             requestAnimationFrame(loop);
         }
 
@@ -236,7 +237,6 @@
             localStorage.setItem('save_' + currentUserID, JSON.stringify(state));
         }
 
-        // --- BOUCLE PRINCIPALE ---
         function loop() {
             if(Math.random() < 0.05) saveUserState();
 
@@ -245,38 +245,66 @@
                 requestAnimationFrame(loop); return;
             }
 
-            // GESTION TEMPS / POSITION
             const now = Date.now();
             const timeElapsed = now - startTime;
             const totalDurationMs = TRIP_DURATION_MINUTES * 60 * 1000;
             let progress = timeElapsed / totalDurationMs;
 
-            // --- ARRIVÉE À DESTINATION ---
+            // ARRIVÉE
             if(progress >= 1) {
                 progress = 1;
                 marker.setLatLng(routePoints[routePoints.length-1]);
+                document.querySelector('.speed-badge').style.background = "#27ae60";
+                document.querySelector('.speed-badge').innerHTML = "✅ ARRIVÉ";
+                document.querySelector('.speed-badge').style.color = "white";
                 
-                // 1. Compteur Vert
-                const badge = document.querySelector('.speed-badge');
-                badge.style.background = "#27ae60"; // Vert
-                badge.style.color = "white";
-                badge.innerHTML = "✅ ARRIVÉ";
+                // Forcer l'icône camion à la fin
+                if (currentMode !== 'truck') {
+                    marker.setIcon(truckIcon);
+                    currentMode = 'truck';
+                }
 
-                // 2. Log unique (évite les doublons si déjà loggué)
                 const historyHTML = document.getElementById('hist-list').innerHTML;
                 if (!historyHTML.includes('Colis remis au destinataire')) {
                     addLog("✅ Colis remis au destinataire", "end");
                     marker.bindPopup("<b>COLIS LIVRÉ</b>").openPopup();
                 }
-                
-                return; // Fin de la boucle
+                return;
             }
 
-            // --- VITESSE (30 SECONDES) ---
-            if (now - lastSpeedUpdate > 30000) {
-                currentSpeed = Math.floor(Math.random() * (110 - 85 + 1) + 85);
-                lastSpeedUpdate = now;
+            // --- LOGIQUE DE CHANGEMENT D'ICÔNE ---
+            // 0-10% = Camion, 10-90% = Avion, 90-100% = Camion
+            let newMode = 'truck';
+            if (progress > 0.10 && progress < 0.90) {
+                newMode = 'plane';
+            }
+
+            if (newMode !== currentMode) {
+                currentMode = newMode;
+                if (newMode === 'plane') {
+                    marker.setIcon(planeIcon);
+                    addLog("✈️ Chargement Fret Aérien - Décollage", "start");
+                    // Avion va plus vite, on simule une vitesse affichée plus haute
+                    targetSpeed = 850; 
+                    currentSpeed = 800;
+                } else {
+                    marker.setIcon(truckIcon);
+                    addLog("🛬 Atterrissage - Prise en charge Camion", "start");
+                    targetSpeed = 90;
+                    currentSpeed = 90;
+                }
+            }
+
+            // VITESSE 30s (Si on est en camion, sinon avion c'est différent)
+            if (currentMode === 'truck') {
+                if (now - lastSpeedUpdate > 30000) {
+                    currentSpeed = Math.floor(Math.random() * (110 - 85 + 1) + 85);
+                    lastSpeedUpdate = now;
+                }
                 document.getElementById('spd').innerText = currentSpeed;
+            } else {
+                // Vitesse avion (stable haute)
+                document.getElementById('spd').innerText = Math.floor(Math.random() * (900 - 850 + 1) + 850);
             }
 
             // POSITION
@@ -298,11 +326,11 @@
             requestAnimationFrame(loop);
         }
 
-        // UTILS & ADMIN
+        // UTILS
         function openAdminAuth() { toggleMenu(); document.getElementById('admin-auth-modal').style.display = 'flex'; document.getElementById('adm-pass').value=""; document.getElementById('auth-error').style.display='none'; }
         function closeAdminAuth() { document.getElementById('admin-auth-modal').style.display = 'none'; }
         function checkAdminAuth() {
-            if(document.getElementById('adm-user').value === 'admin' && document.getElementById('adm-pass').value === 'Mfteur044*') {
+            if(document.getElementById('adm-user').value === 'admin' && document.getElementById('adm-pass').value === 'Mfeteur044*') {
                 window.open('admin.html', '_blank'); closeAdminAuth();
             } else {
                 document.getElementById('auth-error').style.display = 'block';
